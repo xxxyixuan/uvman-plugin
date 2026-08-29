@@ -1,0 +1,78 @@
+# =========================================================
+# uvman 插件模板（TEMPLATE）
+# 对应版本：uvman 0.2.x 当前实现的插件 Schema
+#
+# 本模板只包含当前代码真正解析的字段。
+# 未实现（0.6.0 待定稿）的字段一律不要写，写了会被 serde 静默忽略：
+#   tool.homepage / tool.license / tool.aliases
+#   install.defaults.mode
+#   install.bin.deploy.copy_extra / post_install
+#   [[install.src]]（含 dependencies / build 等）
+#   {install_root}  变量（代码从不注入）
+#
+# 详细说明见同目录《插件编写说明.md》。
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "node"                          # [必填] 工具唯一标识，安装/切换均用此名
+description = "Node.js JavaScript runtime"   # [可选] 工具描述
+version = "1.0.0"                      # [可选] 插件自身版本；plugin info 展示
+author = ["yixuan"]                    # [可选] 维护者/作者，字符串数组
+
+# ---- 2. 下载源 ----------------------------------------------
+# 下载候选顺序：全局 [registry] 镜像 → 本插件 mirrors → 本插件 default
+[registry]
+default = "https://nodejs.org/dist"            # [必填] 默认下载源
+mirrors = [                                    # [可选] 备用镜像源
+    "https://npmmirror.com/mirrors/node",
+]
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# source 二选一："api"（拉 JSON）或 "static"（固定列表）
+[release]
+source = "api"                                 # [必填] api / static
+url = "https://nodejs.org/dist/index.json"     # [api 必填] JSON 接口地址
+# version_path = "data.tags"                   # [可选] 版本号在 JSON 中的 JSON 路径
+version_pattern = '^v(.*)$'                    # [可选] 提取版本号的正则（如去 v 前缀）
+# versions = ["20.11.0", "20.10.0"]            # [static 必填] 手动列出版本；与 api 互斥
+
+# ---- 4. 平台映射 --------------------------------------------
+# 系统 OS/ARCH 常量 → 下载标识 token（缺省则任意平台均报不支持）
+[platform]
+os_map = { windows = "win", linux = "linux", macos = "darwin" }
+arch_map = { x86_64 = "x64", aarch64 = "arm64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"                             # [必填] 用户未指定版本时的默认值（可用 latest）
+
+[[install.bin]]
+os = ["windows", "linux", "macos"]             # [必填] 适用系统（env::consts::OS）
+arch = ["x86_64", "aarch64"]                   # [必填] 适用架构（env::consts::ARCH）
+
+# 5.1 下载配置
+[install.bin.download]
+path = "{registry}/v{version}/node-v{version}-{os}-{arch}.{ext}"  # [必填] 下载 URL 模板
+[install.bin.download.ext]
+windows = "zip"                                # 平台 → 扩展名映射
+linux = "tar.gz"
+macos = "tar.gz"
+
+# 5.2 哈希校验配置
+[install.bin.download.hash]
+enabled = true                                 # [必填] 是否校验
+algorithm = "sha256"                           # [可选] 校验算法，缺省 sha256
+path = "{registry}/v{version}/SHASUMS256.txt"  # [可选] 校验和文件 URL 模板
+pattern = '^(?P<hash>[0-9a-f]{64})\s+.*node-v{version}-{os}-{arch}.{ext}$'  # [可选] 提取校验和
+# 不写 pattern 时：按官方文件名 {filename} 在文本行内自动匹配
+
+# 5.3 解压配置
+[install.bin.extract]
+strip = 1                                      # [必填] 剥离顶层目录层数
+
+# 5.4 部署配置
+# bin_dir 支持两种写法（第二种按 OS 区分，适合不同平台目录布局不同的工具）
+[install.bin.deploy]
+bin_dir = { windows = "", linux = "bin", macos = "bin" }
+# 等价全平台统一写法：bin_dir = "bin"
