@@ -1,0 +1,64 @@
+# =========================================================
+# Node.js 插件（node.toml）
+# 对应 Schema 版本：uvman 0.2.x，字段见 templates/template.toml
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "node"                                   # 工具唯一标识（安装/切换均用此名）
+description = "Node.js JavaScript runtime"      # 工具描述
+version = "1.0.0"                               # 插件自身版本，plugin info 展示
+author = ["yixuan"]                             # 维护者/作者
+
+# ---- 2. 下载源 ----------------------------------------------
+# 下载候选顺序：全局 [registry] 镜像 → 本插件 mirrors → 本插件 default
+[registry]
+default = "https://nodejs.org/dist"
+mirrors = [
+    "https://npmmirror.com/mirrors/node",
+    "https://mirrors.huaweicloud.com/nodejs",
+]
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# 官方 index.json 返回形如 "v20.11.0" 的版本串，pattern 去掉 v 前缀
+[release]
+source = "api"
+url = "https://nodejs.org/dist/index.json"
+version_pattern = '^v(.*)$'
+
+# ---- 4. 平台映射 --------------------------------------------
+# 系统常量 → Node.js 官方下载包的 OS/ARCH 标识
+[platform]
+os_map = { windows = "win", linux = "linux", macos = "darwin" }
+arch_map = { x86_64 = "x64", aarch64 = "arm64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"
+
+[[install.bin]]
+os = ["windows", "linux", "macos"]
+arch = ["x86_64", "aarch64"]
+
+# 5.1 下载配置：官方包命名为 node-v{version}-{os}-{arch}.{ext}
+[install.bin.download]
+path = "{registry}/v{version}/node-v{version}-{os}-{arch}.{ext}"
+[install.bin.download.ext]
+windows = "zip"
+linux = "tar.gz"
+macos = "tar.gz"
+
+# 5.2 哈希校验：官方 SHASUMS256.txt 中按文件名匹配
+[install.bin.download.hash]
+enabled = true
+algorithm = "sha256"
+path = "{registry}/v{version}/SHASUMS256.txt"
+pattern = '^(?P<hash>[0-9a-f]{64})\s+.*node-v{version}-{os}-{arch}.{ext}$'
+
+# 5.3 解压配置：归档内层目录 node-v{version}-{os}-{arch}/ 剥掉一层
+[install.bin.extract]
+strip = 1
+
+# 5.4 部署配置：Windows zip 解压后 node.exe 在根目录，linux/macos 在 bin/
+[install.bin.deploy]
+bin_dir = { windows = "", linux = "bin", macos = "bin" }
