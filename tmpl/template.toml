@@ -1,16 +1,6 @@
 # =========================================================
 # uvman 插件模板（TEMPLATE）
-# 对应版本：uvman 0.2.x 当前实现的插件 Schema
-#
-# 本模板只包含当前代码真正解析的字段。
-# 未实现（0.6.0 待定稿）的字段一律不要写，写了会被 serde 静默忽略：
-#   tool.homepage / tool.license / tool.aliases
-#   install.defaults.mode
-#   install.bin.deploy.copy_extra / post_install
-#   [[install.src]]（含 dependencies / build 等）
-#   {install_root}  变量（代码从不注入）
-#
-# 详细说明见同目录《插件编写说明.md》。
+# 详细说明见同目录 README.md（插件 Schema 完整说明）。
 # =========================================================
 
 # ---- 1. 工具元信息 ------------------------------------------
@@ -65,7 +55,8 @@ enabled = true                                 # [必填] 是否校验
 algorithm = "sha256"                           # [可选] 校验算法，缺省 sha256
 path = "{registry}/v{version}/SHASUMS256.txt"  # [可选] 校验和文件 URL 模板
 pattern = '^(?P<hash>[0-9a-f]{64})\s+.*node-v{version}-{os}-{arch}.{ext}$'  # [可选] 提取校验和
-# 不写 pattern 时：按官方文件名 {filename} 在文本行内自动匹配
+# 不写 pattern 时：按官方文件名 {filename} 在文本行内自动匹配（文件名会做正则转义，最稳妥）
+# 注意：pattern 里的 {version} 等变量是纯文本替换、不做正则转义，版本串含 + 等正则特殊字符时不要用 pattern
 
 # 5.3 解压配置
 [install.bin.extract]

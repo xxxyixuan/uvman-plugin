@@ -82,7 +82,7 @@ source = "static"
 versions = ["20.11.0", "20.10.0"]   # [必填] str 数组
 ```
 
-适合没有规范版本接口的工具。
+适合没有规范版本接口的工具。参考实现：`python.toml`（static，官方源无版本接口）；对照 `node.toml`（api）。
 
 **注意**：`source` 必须是 `"api"` 或 `"static"`，其他值会导致整份插件解析失败（不是静默忽略）。
 
@@ -112,6 +112,10 @@ version = "latest"   # [必填] 用户执行 uvman install node（不带版本�
 ```
 
 可用 `latest`；也可写具体版本号。
+
+`latest` 取版本集合中**最大的 semver**（semver 优先级忽略 `+` 后的 build metadata，即 `3.12.14+20260825` 与
+`3.12.14+20260101` 视为相等，避免在 static 列表里放入仅 build metadata 不同的两个版本）。`3.12`、`3.12.14` 等
+部分版本请求按版本串**前缀匹配**后取最大；请求完整版本号时必须能通过 semver 解析（含 build metadata 合法）才按原样使用。
 
 ### 6.2 二进制安装项 `[[install.bin]]`
 
@@ -147,9 +151,13 @@ path = "{registry}/v{version}/SHASUMS256.txt"  # [可选] 校验和文件 URL �
 pattern = '^(?P<hash>[0-9a-f]{64})\s+.*node-v{version}-{os}-{arch}.{ext}$'  # [可选]
 ```
 
-- 不写 `pattern` 时：按官方文件 `{filename}`（自动取自 URL 末段）在校验和文件行内自动匹配对应哈希值。
+- 不写 `pattern` 时：按官方文件 `{filename}`（自动取自 URL 末段）行内匹配 `<hash>  <文件名>` 格式的行
+  （文件名会做正则转义，含 `+` 等特殊字符也安全）；匹配不到时兜底取文件中第一段 64/128 位 hex。
+  适合 sha256sum 风格的聚合校验和文件（如 python-build-standalone 的 `SHA256SUMS`）。
 - 写 `pattern` 时：用命名捕获组 `(?P<hash>...)`（或第一个捕获组）提取哈希。
-- 校验和文件 URL 同样支持所有模板变量。
+  ⚠ 变量插值是**纯文本替换、不做正则转义**：版本串含 `+` 等正则特殊字符时不要把 `{version}` 插进
+  pattern（`+` 会变成量词导致匹配错乱），此时应改用上面的文件名自动匹配。
+- 校验和文件 URL 同样支持所有模板变量（含 `{filename}`，可拼 sidecar 文件如 `{filename}.sha256`）。
 
 **解压** `[install.bin.extract]`：
 
@@ -189,6 +197,9 @@ bin_dir = { windows = "", linux = "bin", macos = "bin" }
 | `{ext}`      | 当前平台的扩展名                         | `zip` / `tar.gz`            |
 | `{filename}` | 官方归档文件名（自动取自 URL 末段）             | `node-v20.11.0-win-x64.zip` |
 
+> `{filename}` 由 download URL 末段推导，仅可用于 `hash.path` / `hash.pattern`，**不能**用于 `download.path`
+> （URL 尚未生成，占位符会被原样保留）。未知占位符一律原样保留，不会报错。
+>
 > `{install_root}` 未实现，不要使用。
 
 ## 8. 平台决策的误区提醒
@@ -208,4 +219,5 @@ bin_dir = { windows = "", linux = "bin", macos = "bin" }
 - [ ] `download.ext`、`bin_dir` 覆盖了你声明的所有 `os`
 - [ ] `download.path` 里用到的 `{os} / {arch} / {ext}` 在 `os_map / arch_map / ext` 中都有对应键
 - [ ] `hash.enabled = false` 时 `pattern`/`path` 可省略；`true` 时确认 `algorithm` 与校验和文件格式匹配
+- [ ] `hash.pattern` 里没有插值含正则特殊字符的 `{version}`（如 `+`）；拿不准就不写 pattern 走文件名自动匹配
 - [ ] 可用 `uvman plugin install mytool --path ./mytool.toml` 本地安装验证，能成功 `uvman install mytool`

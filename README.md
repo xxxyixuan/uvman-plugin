@@ -10,26 +10,26 @@ Schema）。
 uvman-plugin/
 ├── README.md                 # 本说明文档
 ├── LICENSE                   # MIT 许可证
-├── node.toml                 # Node.js 插件（可作为真实插件安装）
-└── templates/
+├── <tool_name>.toml          # 插件文件，如 node.toml、python.toml
+└── tmpl/
     ├── template.toml         # 插件编写模板（含全部可解析字段与注释）
-    └── 插件编写说明.md         # 插件 Schema 完整说明（权威文档）
+    └── README.md             # 插件 Schema 完整说明（权威文档）
 ```
 
 约定：
 
 - 每个真插件以独立 `<tool>.toml` 存放于仓库**根目录**，文件名与 `[tool] name` 保持一致（如 `node.toml`）。
-- `uvman plugin list --remote` 会识别仓库**根目录**下的所有 `*.toml` 并展示给用户。因此 `templates/` 子目录下的
+- `uvman plugin list --remote` 会识别仓库**根目录**下的所有 `*.toml` 并展示给用户。因此 `tmpl/` 子目录下的
   `template.toml` **不会**被当作真实插件展示——它只是编写参考，模板里的 `name = "node"` 仅是示例占位，不可直接安装。
 - 所有插件与文档均以 MIT 许可证发布。
 
-> 编写新插件：复制 [`templates/template.toml`](./templates/template.toml) 并按 `[tool] name` 重命名放到根目录，
-> 对照 [`templates/插件编写说明.md`](./templates/插件编写说明.md) 填写即可。
+> 编写新插件：复制 [`tmpl/template.toml`](./tmpl/template.toml) 并按 `[tool] name` 重命名放到根目录，
+> 对照 [`tmpl/README.md`](./tmpl/README.md) 填写即可。
 
 ## 一个插件由 5 个区块组成
 
 在 `[tool]` / `[registry]` / `[release]` / `[install]`（必填）之外，`[platform]` 可选。完整字段说明见
-[`插件编写说明.md`](./templates/插件编写说明.md)，此处仅列概况：
+[`tmpl/README.md`](./tmpl/README.md)，此处仅列概况：
 
 | 区块           | 作用                                                                                                       |
 |--------------|----------------------------------------------------------------------------------------------------------|
@@ -85,12 +85,12 @@ macos = "tar.gz"
 | `{os}`       | 经 `os_map` 映射后的 OS 标识 | `win` / `darwin`            |
 | `{arch}`     | 经 `arch_map` 映射后的架构标识 | `x64` / `arm64`             |
 | `{ext}`      | 当前平台扩展名               | `zip` / `tar.gz`            |
-| `{filename}` | 官方归档文件名（仅校验正则内自动匹配）   | `node-v20.11.0-win-x64.zip` |
+| `{filename}` | 官方归档文件名（自动取自 URL 末段，仅可用于校验和模板） | `node-v20.11.0-win-x64.zip` |
 
 ## 贡献新插件
 
-1. 复制 [`templates/template.toml`](./templates/template.toml) 为根目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
-2. 对照 [`插件编写说明.md`](./templates/插件编写说明.md) 填写 5 个区块，务必移除所有未实现字段
+1. 复制 [`tmpl/template.toml`](./tmpl/template.toml) 为根目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
+2. 对照 [`tmpl/README.md`](./tmpl/README.md) 填写 5 个区块，务必移除所有未实现字段
    （`homepage` / `license` / `aliases` / `mode` / `install.src` / `copy_extra` / `post_install` / `{install_root}`）。
 3. 用 `uvman plugin install <tool> --path ./<tool>.toml` 本地验证可成功 `uvman install <tool>`。
 4. 提交 Pull Request。
