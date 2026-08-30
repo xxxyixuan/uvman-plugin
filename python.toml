@@ -1,0 +1,75 @@
+# =========================================================
+# Python 插件（python.toml）
+# 对应 Schema 版本：uvman 0.2.x，字段见 templates/template.toml
+# 二进制来源：python.org 官方发行目录 https://www.python.org/ftp/python/
+# （"ftp" 只是路径名，实为 HTTPS 目录服务）
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "python"                                     # 工具唯一标识（安装/切换均用此名）
+description = "Python programming language (official python.org Windows builds)"
+version = "2.0.0"                                   # 插件自身版本，plugin info 展示；2.0.0 = 发行源由 python-build-standalone 换为官方
+author = ["yixuan"]                                 # 维护者/作者
+
+# ---- 2. 下载源 ----------------------------------------------
+# 官方目录结构为 {registry}/{version}/文件名，与华为云镜像一致，可共用模板。
+# 华为云镜像必须带尾斜杠：裸路径 /python（不带斜杠）整站行为是返回 500，
+# 带斜杠则返回目录页；带斜杠会使 {registry} 替换后出现 //，镜像会归一化，
+# 实测下载 200（node.toml 的华为云镜像同样存在该裸路径 500 通病）。
+[registry]
+default = "https://www.python.org/ftp/python"
+mirrors = [
+    "https://mirrors.huaweicloud.com/python/",
+]
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# 官方没有版本列表 JSON 接口，只有目录页 → static 手工维护（新版在上）。
+#
+# ⚠ 覆盖范围说明：
+#   * 官方仅 Windows 提供免编译归档：python-{v}-amd64/arm64.zip（完整安装包，
+#     3.13 起提供）。linux 只有源码 tarball，macOS 只有 .pkg 安装器，均无法被
+#     当前 Schema（下载→解压→部署）消费，故本插件只声明 windows 平台。
+#   * 进入 security-only 阶段的版本（如 3.12.x）官方不再发布二进制，目录下只有
+#     源码包，无法收录。因此版本覆盖从 3.13 起，早于 pbs 方案（3.10–3.14 全覆盖）。
+#   * 免编译全平台 + SHA256 强校验的替代方案：astral-sh/python-build-standalone
+#     （uv 同款），见仓库 .tmp/python.pbs.toml.bak 与《工具开发清单》§3.1。
+[release]
+source = "static"
+versions = [
+    "3.14.7",
+    "3.13.15",
+]
+
+# ---- 4. 平台映射 --------------------------------------------
+# 完整安装包命名为 python-{version}-amd64.zip / -arm64.zip（模板不用 {os}）
+[platform]
+os_map = { windows = "windows" }
+arch_map = { x86_64 = "amd64", aarch64 = "arm64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"
+
+[[install.bin]]
+os = ["windows"]
+arch = ["x86_64", "aarch64"]
+
+# 5.1 下载配置
+[install.bin.download]
+path = "{registry}/{version}/python-{version}-{arch}.zip"
+[install.bin.download.ext]
+windows = "zip"
+
+# 5.2 哈希校验：官方目录不提供机器可读的校验和文件（SHA256 只写在发布页 HTML
+# 里），无法走强校验，只能关闭。
+[install.bin.download.hash]
+enabled = false
+
+# 5.3 解压配置：zip 无顶层目录，python.exe 就在根 → 不剥层
+[install.bin.extract]
+strip = 0
+
+# 5.4 部署配置：python.exe 在解压根目录
+[install.bin.deploy]
+bin_dir = ""
