@@ -78,22 +78,27 @@ macos = "tar.gz"
 
 下载路径、校验和路径等模板字符串支持以下占位符：
 
-| 变量           | 含义                    | 示例值                         |
-|--------------|-----------------------|-----------------------------|
-| `{registry}` | 当前生效的下载源              | `https://nodejs.org/dist`   |
-| `{version}`  | 已解析的具体版本号             | `20.11.0`                   |
-| `{os}`       | 经 `os_map` 映射后的 OS 标识 | `win` / `darwin`            |
-| `{arch}`     | 经 `arch_map` 映射后的架构标识 | `x64` / `arm64`             |
-| `{ext}`      | 当前平台扩展名               | `zip` / `tar.gz`            |
+| 变量           | 含义                             | 示例值                         |
+|--------------|--------------------------------|-----------------------------|
+| `{registry}` | 当前生效的下载源                       | `https://nodejs.org/dist`   |
+| `{version}`  | 已解析的具体版本号                      | `20.11.0`                   |
+| `{os}`       | 经 `os_map` 映射后的 OS 标识          | `win` / `darwin`            |
+| `{arch}`     | 经 `arch_map` 映射后的架构标识          | `x64` / `arm64`             |
+| `{ext}`      | 当前平台扩展名                        | `zip` / `tar.gz`            |
 | `{filename}` | 官方归档文件名（自动取自 URL 末段，仅可用于校验和模板） | `node-v20.11.0-win-x64.zip` |
 
 ## 贡献新插件
 
-1. 复制 [`tmpl/template.toml`](./tmpl/template.toml) 为根目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
-2. 对照 [`tmpl/README.md`](./tmpl/README.md) 填写 5 个区块，务必移除所有未实现字段
+`main` 分支受保护：除仓库维护者外，所有变更必须通过 Pull Request 合并（需 1 个审批），且禁止强推与删除分支。
+
+1. Fork 本仓库并 clone 到本地（协作者可直接 clone，另开功能分支）。
+2. 复制 [`tmpl/template.toml`](./tmpl/template.toml) 为根目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
+3. 对照 [`tmpl/README.md`](./tmpl/README.md) 填写 5 个区块，务必移除所有未实现字段
    （`homepage` / `license` / `aliases` / `mode` / `install.src` / `copy_extra` / `post_install` / `{install_root}`）。
-3. 用 `uvman plugin install <tool> --path ./<tool>.toml` 本地验证可成功 `uvman install <tool>`。
-4. 提交 Pull Request。
+4. 本地验证：`uvman plugin install <tool> --path ./<tool>.toml` 安装插件后，`uvman install <tool>` 可成功安装。
+5. 提交信息遵循 `<type>(<scope>): <中文描述>` 格式（type 取 `feat` / `fix` / `docs` / `chore` 等，scope 用工具名
+   或目录，如 `feat(python): 新增 python 插件`）。
+6. Push 到你的 fork 后向本仓库 `main` 发起 Pull Request，维护者 review 通过后合并。
 
 ## 许可证
 
