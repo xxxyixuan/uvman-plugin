@@ -19,13 +19,9 @@ mirrors = [
 ]
 
 # ---- 3. 版本列表获取方式 ------------------------------------
-# 走 GitHub cpython tags API（完整补丁级枚举，官方 v2 API 混全历史版本无法过滤）。
-# 数组对象取 name 字段；version_pattern 只匹配正式版 vX.Y.Z（排 rc/b/a 及带后缀 tag）。
-# 注意两点：单 URL 无分页，per_page=100 首屏约覆盖最近 80 个正式版，更老系列会截断；
-# Windows 免编译归档（python-{v}-{arch}.zip 命名）仅 3.13 起提供，更老系列下载会失败。
 [release]
 source = "api"
-url = "https://api.github.com/repos/python/cpython/tags?per_page=100"
+url = "https://api.github.com/repos/python/cpython/tags?per_page=500"
 version_pattern = '^v(\d+\.\d+\.\d+)$'
 
 # ---- 4. 平台映射 --------------------------------------------
