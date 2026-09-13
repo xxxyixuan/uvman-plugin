@@ -23,6 +23,7 @@ mirrors = [
 source = "api"
 url = "https://api.github.com/repos/python/cpython/tags?per_page=500"
 version_pattern = '^v(\d+\.\d+\.\d+)$'
+# display_pattern = ''
 
 # ---- 4. 平台映射 --------------------------------------------
 # 完整安装包命名为 python-{version}-amd64.zip / -arm64.zip（模板不用 {os}）
