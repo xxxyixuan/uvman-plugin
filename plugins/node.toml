@@ -25,6 +25,7 @@ mirrors = [
 source = "api"
 url = "https://nodejs.org/dist/index.json"
 version_pattern = '^v(.*)$'
+# display_pattern = ''
 
 # ---- 4. 平台映射 --------------------------------------------
 # 系统常量 → Node.js 官方下载包的 OS/ARCH 标识
