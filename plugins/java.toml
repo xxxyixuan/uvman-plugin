@@ -1,0 +1,66 @@
+# =========================================================
+# Java 插件（java.toml）
+# 对应 Schema 版本：uvman 0.3.x，字段见 templates/template.toml
+# 二进制来源：BellSoft Liberica JDK 官方 Product Discovery API
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "java"                                   # 工具唯一标识（安装/切换均用此名）
+description = "Java JDK (BellSoft Liberica certified builds)"   # 工具描述
+version = "1.0.0"                               # 插件自身版本，plugin info 展示
+author = ["yixuan"]                             # 维护者/作者
+
+# ---- 2. 下载源 ----------------------------------------------
+# 下载候选顺序：全局 [registry] 镜像 → 本插件 mirrors → 本插件 default
+[registry]
+default = "https://download.bell-sw.com/java"
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# 固定用 windows/x86_64/zip 查询拿版本清单：Liberica 版本号为标准 Java 版本 + 构建号
+# （如 26.0.2.1+1 / 21.0.12.1+1），与平台无关，可安全用于所有平台。
+# 过滤条件：bundle-type=jdk（标准版，排除 JavaFX full）、package-type=zip。
+# version_pattern 只保留带主次补丁的现代版本（丢弃 8uxxx / 11 / 14+36 等历史格式）。
+[release]
+source = "api"
+url = "https://api.bell-sw.com/v1/liberica/releases?bitness=64&os=windows&arch=x86&package-type=zip&bundle-type=jdk"
+version_pattern = '^(\d+\.\d+\.\d+(?:\.\d+)?(?:\+\d+)?)$'
+# 仅 uvman list java --remote 展示用：去掉 + 构建号，如 26.0.2.1+1 → 26.0.2.1
+# 安装/下载仍使用 version_pattern 产出的完整版本串（含 + 构建号）
+display_pattern = '^(\d+\.\d+\.\d+(?:\.\d+)?)'
+
+# ---- 4. 平台映射 --------------------------------------------
+# 系统常量 → Liberica 包的 OS/ARCH 标识（OS 即系统常量本身，ARCH 为 amd64/aarch64）
+[platform]
+os_map = { windows = "windows", linux = "linux", macos = "macos" }
+arch_map = { x86_64 = "amd64", aarch64 = "aarch64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"
+
+[[install.bin]]
+os = ["windows", "linux", "macos"]
+arch = ["x86_64", "aarch64"]
+
+# 5.1 下载配置：官方包命名为 bellsoft-jdk{version}-{os}-{arch}.{ext}，CDN 按版本分目录
+# （URL 中 {version} 的 + 为合法路径字符，实测无需编码）
+[install.bin.download]
+path = "{registry}/{version}/bellsoft-jdk{version}-{os}-{arch}.{ext}"
+[install.bin.download.ext]
+windows = "zip"
+linux = "tar.gz"
+macos = "zip"
+
+# 5.2 哈希校验：Liberica 仅在 JSON 元数据里给 sha1，无独立校验和文件 → 关闭
+[install.bin.download.hash]
+enabled = false
+
+# 5.3 解压配置：归档顶层目录 bellsoft-jdk{version}-{os}-{arch}/ 剥掉一层
+[install.bin.extract]
+strip = 1
+
+# 5.4 部署配置：整树部署（bin/lib/conf 需共存），uvman 自动把解压根的 bin/ 加入 PATH
+# 注：macOS 为 .app 布局（真实 bin 在 Contents/Home/bin），整树部署后不会自动入 PATH（已知限制）
+[install.bin.deploy]
+bin_dir = ""
