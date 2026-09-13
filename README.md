@@ -1,6 +1,6 @@
 # uvman-plugin
 
-`uvman` 项目的插件仓库。仓库内每一个根目录下的 `*.toml` 文件就是一个 `uvman` 工具插件，用一份纯 TOML
+`uvman` 项目的插件仓库。仓库内 `plugins/` 子目录下的每个 `*.toml` 文件就是一个 `uvman` 工具插件，用一份纯 TOML
 声明某个命令行工具的下载源、版本获取方式、平台映射与二进制安装方案，供 `uvman` 运行时读取并执行安装（对应 uvman 0.2.x 的插件
 Schema）。
 
@@ -10,7 +10,10 @@ Schema）。
 uvman-plugin/
 ├── README.md                 # 本说明文档
 ├── LICENSE                   # MIT 许可证
-├── <tool_name>.toml          # 插件文件，如 node.toml、python.toml
+├── plugins/                  # 插件目录，每个 <tool_name>.toml 是一个插件
+│   ├── node.toml
+│   ├── python.toml
+│   └── java.toml
 └── tmpl/
     ├── template.toml         # 插件编写模板（含全部可解析字段与注释）
     └── README.md             # 插件 Schema 完整说明（权威文档）
@@ -18,12 +21,12 @@ uvman-plugin/
 
 约定：
 
-- 每个真插件以独立 `<tool>.toml` 存放于仓库**根目录**，文件名与 `[tool] name` 保持一致（如 `node.toml`）。
-- `uvman plugin list --remote` 会识别仓库**根目录**下的所有 `*.toml` 并展示给用户。因此 `tmpl/` 子目录下的
+- 每个真插件以独立 `<tool>.toml` 存放于仓库 `plugins/` 子目录，文件名与 `[tool] name` 保持一致（如 `plugins/node.toml`）。
+- `uvman plugin list --remote` 会识别仓库 `plugins/` 子目录下的所有 `*.toml` 并展示给用户。因此 `tmpl/` 子目录下的
   `template.toml` **不会**被当作真实插件展示——它只是编写参考，模板里的 `name = "node"` 仅是示例占位，不可直接安装。
 - 所有插件与文档均以 MIT 许可证发布。
 
-> 编写新插件：复制 [`tmpl/template.toml`](./tmpl/template.toml) 并按 `[tool] name` 重命名放到根目录，
+> 编写新插件：复制 [`tmpl/template.toml`](./tmpl/template.toml) 并按 `[tool] name` 重命名放到 `plugins/` 子目录，
 > 对照 [`tmpl/README.md`](./tmpl/README.md) 填写即可。
 
 ## 一个插件由 5 个区块组成
@@ -92,10 +95,10 @@ macos = "tar.gz"
 `main` 分支受保护：除仓库维护者外，所有变更必须通过 Pull Request 合并（需 1 个审批），且禁止强推与删除分支。
 
 1. Fork 本仓库并 clone 到本地（协作者可直接 clone，另开功能分支）。
-2. 复制 [`tmpl/template.toml`](./tmpl/template.toml) 为根目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
+2. 复制 [`tmpl/template.toml`](./tmpl/template.toml) 为 `plugins/` 子目录 `<tool>.toml`，文件名与 `[tool] name` 一致。
 3. 对照 [`tmpl/README.md`](./tmpl/README.md) 填写 5 个区块，务必移除所有未实现字段
    （`homepage` / `license` / `aliases` / `mode` / `install.src` / `copy_extra` / `post_install` / `{install_root}`）。
-4. 本地验证：`uvman plugin install <tool> --path ./<tool>.toml` 安装插件后，`uvman install <tool>` 可成功安装。
+4. 本地验证：`uvman plugin install <tool> --path ./plugins/<tool>.toml` 安装插件后，`uvman install <tool>` 可成功安装。
 5. 提交信息遵循 `<type>(<scope>): <中文描述>` 格式（type 取 `feat` / `fix` / `docs` / `chore` 等，scope 用工具名
    或目录，如 `feat(python): 新增 python 插件`）。
 6. Push 到你的 fork 后向本仓库 `main` 发起 Pull Request，维护者 review 通过后合并。
