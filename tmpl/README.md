@@ -9,17 +9,17 @@
 
 一份完整插件由 5 个区块构成，其中 4 个必填、1 个可选：
 
-| 区块           | 必填 | 作用                             |
-|--------------|----|--------------------------------|
-| `[tool]`     | ✅  | 工具元信息（名称、描述、插件版本、作者）           |
-| `[registry]` | ✅  | 下载源（默认源 + 镜像）                  |
-| `[release]`  | ✅  | 版本列表获取方式（API 拉取 / 静态列表）        |
-| `[platform]` | ❌  | 系统常量 → 下载 token 映射（缺省则不支持任何平台） |
-| `[install]`  | ✅  | 安装方案（默认版本 + 二进制安装项）            |
+| 区块         | 必填 | 作用                                               |
+|--------------|------|----------------------------------------------------|
+| `[tool]`     | ✅   | 工具元信息（名称、描述、插件版本、作者）           |
+| `[registry]` | ✅   | 下载源（默认源 + 镜像）                            |
+| `[release]`  | ✅   | 版本列表获取方式（API 拉取 / 静态列表）            |
+| `[platform]` | ❌   | 系统常量 → 下载 token 映射（缺省则不支持任何平台） |
+| `[install]`  | ✅   | 安装方案（默认版本 + 二进制安装项）                |
 
 ### 未实现字段（不要写）
 
-以下字段出自早期设计稿，当前代码**不解析**，写了也会被 serde 静默忽略（不报错但完全不生效），请一律删除：
+以下字段出自早期设计稿，当前代码 **不解析**，写了也会被 serde 静默忽略（不报错但完全不生效），请一律删除：
 
 - `tool.homepage` / `tool.license` / `tool.aliases`
 - `install.defaults.mode`（bin/src 双模式）
@@ -69,10 +69,15 @@ source = "api"
 url = "https://nodejs.org/dist/index.json"   # [必填] JSON 接口
 version_path = "data.tags"                    # [可选] 版本号在 JSON 中的路径（点分路径）
 version_pattern = '^v(.*)$'                   # [可选] 从版本串提取真实版本的正则
+display_pattern = '^.*-jdk(.*)$'              # [可选] 仅 uvman list --remote 展示用（见下）
 ```
 
 - `version_path`：若接口返回嵌套 JSON，用点分路径定位到版本号数组，如 `"data.tags"`；不写则取 JSON 根。
-- `version_pattern`：对每个候选版本串应用正则，取**第一个捕获组**作为版本号；常用去前缀（`^v(.*)$`）。
+- `version_pattern`：对每个候选版本串应用正则，取 **第一个捕获组**作为版本号；常用去前缀（`^v(.*)$`）。
+- `display_pattern`： **仅影响 `uvman list <tool> --remote` 的展示**，不参与版本解析与下载。当厂商文件名把构建号与真实版本
+  连在一起（如 Azul 的 `zulu26.32.203-ca-jdk26.0.2.1-win_x64.zip`，经 `version_pattern` 得到
+  `26.32.203-ca-jdk26.0.2.1`）时，用它把列表显示为纯净版本 `26.0.2.1`（`'^.*-jdk(.*)$'`）。取捕获组规则与
+  `version_pattern` 相同；不匹配时显示原串。
 
 ### 4.2 `source = "static"`：固定版本列表
 
@@ -82,7 +87,7 @@ source = "static"
 versions = ["20.11.0", "20.10.0"]   # [必填] str 数组
 ```
 
-适合没有规范版本接口的工具。参考实现：`python.toml`（static，官方源无版本接口）；对照 `node.toml`（api）。
+适合没有规范版本接口的工具。参考实现：`../plugins/python.toml`（static，官方源无版本接口）；对照 `../plugins/node.toml`（api）。
 
 **注意**：`source` 必须是 `"api"` 或 `"static"`，其他值会导致整份插件解析失败（不是静默忽略）。
 
@@ -98,7 +103,7 @@ arch_map = { x86_64 = "x64", aarch64 = "arm64" }
 - `arch_map`：系统 ARCH 常量 → 下载 URL 里的架构标识。
 
 运行时把系统常量经映射得到 `{os}` / `{arch}` token。若整个 `[platform]` 缺失，或当前系统的 OS/ARCH 不在映射内，安装会报
-`PlatformNotSupported`，**不会**静默回退。
+`PlatformNotSupported`， **不会**静默回退。
 
 系统常量词汇表：`env::consts::OS` → `windows / linux / macos`；`env::consts::ARCH` → `x86_64 / aarch64`。
 
@@ -113,9 +118,9 @@ version = "latest"   # [必填] 用户执行 uvman install node（不带版本�
 
 可用 `latest`；也可写具体版本号。
 
-`latest` 取版本集合中**最大的 semver**（semver 优先级忽略 `+` 后的 build metadata，即 `3.12.14+20260825` 与
-`3.12.14+20260101` 视为相等，避免在 static 列表里放入仅 build metadata 不同的两个版本）。`3.12`、`3.12.14` 等
-部分版本请求按版本串**前缀匹配**后取最大；请求完整版本号时必须能通过 semver 解析（含 build metadata 合法）才按原样使用。
+`latest` 取版本集合中 **最大的 semver**（semver 优先级忽略 `+` 后的 build metadata，即 `3.12.14+20260825` 与
+`3.12.14+20260101` 视为相等，避免在 static 列表里放入仅 build metadata 不同的两个版本）。`3.12`、`3.12.14` 等 部分版本请求按版本串
+**前缀匹配**后取最大；请求完整版本号时必须能通过 semver 解析（含 build metadata 合法）才按原样使用。
 
 ### 6.2 二进制安装项 `[[install.bin]]`
 
@@ -127,7 +132,8 @@ os = ["windows", "linux", "macos"]   # [必填] 适用系统
 arch = ["x86_64", "aarch64"]         # [必填] 适用架构
 ```
 
-- `os` / `arch` 必须**精确等于**系统常量字面值（`windows / linux / macos`、`x86_64 / aarch64`），当前代码**不支持** `"all"`
+- `os` / `arch` 必须 **精确等于**系统常量字面值（`windows / linux / macos`、`x86_64 / aarch64`），当前代码 **不支持**
+  `"all"`
   通配、也不做前缀匹配。要覆盖多个平台就把它们逐个列全。
 
 **下载** `[install.bin.download]`：
@@ -151,12 +157,11 @@ path = "{registry}/v{version}/SHASUMS256.txt"  # [可选] 校验和文件 URL �
 pattern = '^(?P<hash>[0-9a-f]{64})\s+.*node-v{version}-{os}-{arch}.{ext}$'  # [可选]
 ```
 
-- 不写 `pattern` 时：按官方文件 `{filename}`（自动取自 URL 末段）行内匹配 `<hash>  <文件名>` 格式的行
-  （文件名会做正则转义，含 `+` 等特殊字符也安全）；匹配不到时兜底取文件中第一段 64/128 位 hex。
-  适合 sha256sum 风格的聚合校验和文件（如 python-build-standalone 的 `SHA256SUMS`）。
-- 写 `pattern` 时：用命名捕获组 `(?P<hash>...)`（或第一个捕获组）提取哈希。
-  ⚠ 变量插值是**纯文本替换、不做正则转义**：版本串含 `+` 等正则特殊字符时不要把 `{version}` 插进
-  pattern（`+` 会变成量词导致匹配错乱），此时应改用上面的文件名自动匹配。
+- 不写 `pattern` 时：按官方文件 `{filename}`（自动取自 URL 末段）行内匹配 `<hash>  <文件名>` 格式的行 （文件名会做正则转义，含
+  `+` 等特殊字符也安全）；匹配不到时兜底取文件中第一段 64/128 位 hex。 适合 sha256sum 风格的聚合校验和文件（如
+  python-build-standalone 的 `SHA256SUMS`）。
+- 写 `pattern` 时：用命名捕获组 `(?P<hash>...)`（或第一个捕获组）提取哈希。 ⚠ 变量插值是 **纯文本替换、不做正则转义**：版本串含
+  `+` 等正则特殊字符时不要把 `{version}` 插进 pattern（`+` 会变成量词导致匹配错乱），此时应改用上面的文件名自动匹配。
 - 校验和文件 URL 同样支持所有模板变量（含 `{filename}`，可拼 sidecar 文件如 `{filename}.sha256`）。
 
 **解压** `[install.bin.extract]`：
@@ -177,10 +182,10 @@ bin_dir = { windows = "", linux = "bin", macos = "bin" }
 
 `bin_dir` 支持两种写法（按 OS 区分或全平台统一）：
 
-| 写法      | 示例                                          | 适用场景      |
-|---------|---------------------------------------------|-----------|
-| 全平台统一   | `bin_dir = "bin"`                           | 各平台目录布局一致 |
-| 按 OS 区分 | `bin_dir = { linux = "bin", windows = "" }` | 各平台布局不同   |
+| 写法       | 示例                                        | 适用场景           |
+|------------|---------------------------------------------|--------------------|
+| 全平台统一 | `bin_dir = "bin"`                           | 各平台目录布局一致 |
+| 按 OS 区分 | `bin_dir = { linux = "bin", windows = "" }` | 各平台布局不同     |
 
 **按 OS 区分写法下，当前平台缺失对应键会报错**（不是静默回退），以在安装前暴露布局配置错误。
 
@@ -188,16 +193,16 @@ bin_dir = { windows = "", linux = "bin", macos = "bin" }
 
 可在 `download.path`、`hash.path`、`hash.pattern` 等模板字符串中使用（`{key}` 占位替换）：
 
-| 变量           | 含义                               | 示例值                         |
-|--------------|----------------------------------|-----------------------------|
-| `{registry}` | 当前下载源（按候选顺序逐个替换）                 | `https://nodejs.org/dist`   |
-| `{version}`  | 已解析的具体版本号（非别名）                   | `20.11.0`                   |
-| `{os}`       | 经 `[platform].os_map` 映射后的 OS 标识 | `win` / `darwin`            |
+| 变量         | 含义                                      | 示例值                      |
+|--------------|-------------------------------------------|-----------------------------|
+| `{registry}` | 当前下载源（按候选顺序逐个替换）          | `https://nodejs.org/dist`   |
+| `{version}`  | 已解析的具体版本号（非别名）              | `20.11.0`                   |
+| `{os}`       | 经 `[platform].os_map` 映射后的 OS 标识   | `win` / `darwin`            |
 | `{arch}`     | 经 `[platform].arch_map` 映射后的架构标识 | `x64` / `arm64`             |
-| `{ext}`      | 当前平台的扩展名                         | `zip` / `tar.gz`            |
-| `{filename}` | 官方归档文件名（自动取自 URL 末段）             | `node-v20.11.0-win-x64.zip` |
+| `{ext}`      | 当前平台的扩展名                          | `zip` / `tar.gz`            |
+| `{filename}` | 官方归档文件名（自动取自 URL 末段）       | `node-v20.11.0-win-x64.zip` |
 
-> `{filename}` 由 download URL 末段推导，仅可用于 `hash.path` / `hash.pattern`，**不能**用于 `download.path`
+> `{filename}` 由 download URL 末段推导，仅可用于 `hash.path` / `hash.pattern`， **不能**用于 `download.path`
 > （URL 尚未生成，占位符会被原样保留）。未知占位符一律原样保留，不会报错。
 >
 > `{install_root}` 未实现，不要使用。

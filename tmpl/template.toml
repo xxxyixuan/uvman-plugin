@@ -25,6 +25,8 @@ source = "api"                                 # [必填] api / static
 url = "https://nodejs.org/dist/index.json"     # [api 必填] JSON 接口地址
 # version_path = "data.tags"                   # [可选] 版本号在 JSON 中的 JSON 路径
 version_pattern = '^v(.*)$'                    # [可选] 提取版本号的正则（如去 v 前缀）
+# display_pattern = '^.*-jdk(.*)$'             # [可选] 仅 uvman list --remote 展示用，剥离厂商构建号前缀
+                                               #（如 Zulu 26.32.203-ca-jdk26.0.2.1 → 26.0.2.1）；不影响安装/下载
 # versions = ["20.11.0", "20.10.0"]            # [static 必填] 手动列出版本；与 api 互斥
 
 # ---- 4. 平台映射 --------------------------------------------
