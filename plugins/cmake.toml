@@ -1,0 +1,118 @@
+# =========================================================
+# CMake 插件（cmake.toml）
+# 对应 Schema 版本：uvman 0.3.x，字段见 tmpl/template.toml
+# 二进制来源：CMake 官方 GitHub Releases（Kitware/CMake）
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "cmake"                                  # 工具唯一标识（安装/切换均用此名）
+description = "CMake cross-platform build system"   # 工具描述
+version = "1.0.0"                               # 插件自身版本，plugin info 展示
+author = ["yixuan"]                             # 维护者/作者
+
+# ---- 2. 下载源 ----------------------------------------------
+# 下载候选顺序：全局 [registry] 镜像 → 本插件 mirrors → 本插件 default
+# 下载路径形态为 {registry}/v{version}/<资产名>，故 registry 需含 releases/download 一段。
+# CMake 无官方镜像，国内直连 github.com 的 release 下载可用（实测 206），故暂不配 mirrors。
+[registry]
+default = "https://github.com/Kitware/CMake/releases/download"
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# GitHub Releases API 返回数组，每个元素含 tag_name（形如 "v4.4.3"），pattern 去掉 v 前缀。
+# version_pattern 同时充当过滤器——只保留 x.y.z 形式的正式版本，自动丢弃 "v4.4.0-rc3" 等预发布串
+# （实测 100 条 → 70 条，rc 全滤，无残留）。
+# 注意 GitHub API 匿名限流 60 次/小时（见 README §4.6）；
+# 版本串已是纯净语义化版本，无需 display_pattern。
+[release]
+source = "api"
+url = "https://api.github.com/repos/Kitware/CMake/releases?per_page=30"
+version_pattern = '^v(\d+\.\d+\.\d+)$'
+# display_pattern = ''
+
+# ---- 4. 平台映射 --------------------------------------------
+# 系统常量 → CMake 官方包标识。
+# arch_map 仅服务于 Windows/Linux（macOS 的 universal 单包 URL 不含架构段，不引用 {arch}）。
+# Windows 官方只提供 x86_64 资产，故不声明 windows-aarch64。
+[platform]
+os_map = { windows = "windows", linux = "linux", macos = "macos-universal" }
+arch_map = { x86_64 = "x86_64", aarch64 = "aarch64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"
+
+# ===== 5.1 Windows：cmake-{version}-windows-x86_64.zip =====
+[[install.bin]]
+os = ["windows"]
+arch = ["x86_64"]
+
+[install.bin.download]
+path = "{registry}/v{version}/cmake-{version}-{os}-{arch}.{ext}"
+
+[install.bin.download.ext]
+windows = "zip"
+
+# 官方每 release 附 cmake-{version}-SHA-256.txt（标准 sha256sum 格式，`<64hex>  <文件名>`）
+# 不写 pattern → 按 {filename} 自动匹配，含 `-` 的文件名安全
+[install.bin.download.hash]
+enabled = true
+algorithm = "sha256"
+path = "{registry}/v{version}/cmake-{version}-SHA-256.txt"
+
+# 归档顶层唯一目录 cmake-{version}-windows-x86_64/ → 剥一层
+[install.bin.extract]
+strip = 1
+
+# 整树部署：cmake 需要 bin/ share/ doc/ 共存（share/cmake-*/Modules 是必需资源）
+[install.bin.deploy]
+bin_dir = ""
+
+# ===== 5.2 Linux：cmake-{version}-linux-{arch}.tar.gz =====
+[[install.bin]]
+os = ["linux"]
+arch = ["x86_64", "aarch64"]
+
+[install.bin.download]
+path = "{registry}/v{version}/cmake-{version}-{os}-{arch}.{ext}"
+
+[install.bin.download.ext]
+linux = "tar.gz"
+
+[install.bin.download.hash]
+enabled = true
+algorithm = "sha256"
+path = "{registry}/v{version}/cmake-{version}-SHA-256.txt"
+
+[install.bin.extract]
+strip = 1
+
+[install.bin.deploy]
+bin_dir = ""
+
+# ===== 5.3 macOS：cmake-{version}-macos-universal.tar.gz =====
+# universal 单包不带架构段 → path 中不出现 {arch}
+[[install.bin]]
+os = ["macos"]
+arch = ["x86_64", "aarch64"]
+
+[install.bin.download]
+path = "{registry}/v{version}/cmake-{version}-{os}.{ext}"
+
+[install.bin.download.ext]
+macos = "tar.gz"
+
+[install.bin.download.hash]
+enabled = true
+algorithm = "sha256"
+path = "{registry}/v{version}/cmake-{version}-SHA-256.txt"
+
+[install.bin.extract]
+strip = 1
+
+# 注：macOS 归档为 .app bundle 布局——真实可执行文件在 CMake.app/Contents/bin/（嵌套三层），
+# 当前 Schema 的 bin_dir 只能二选一（""=整树部署但 PATH 只加根目录与根/bin；"X"=仅 flatten 部署 X/），
+# 无法表达"整树部署 + 子目录入 PATH"，故这里取整树部署保证 share/ 资源完整，
+# 而 cmake 在 macOS 上不会自动入 PATH（与 java.toml 同一已知限制，见清单 §4.2）。
+[install.bin.deploy]
+bin_dir = ""
