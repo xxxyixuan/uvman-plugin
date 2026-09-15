@@ -1,7 +1,8 @@
 # uvman 插件编写说明
 
 > 对应代码：`src/core/plugin.rs`、`src/toolset/mod.rs`
-> 适用范围：uvman 0.2.x（当前实现）。所有工具（Node、Python 等）统一用一份 TOML 插件文件描述，无需工具专属代码。
+> 适用范围：uvman 0.3.x（当前 0.3.2；`display_pattern` 为 0.3.2 新增）。所有工具（Node、Python 等）统一用一份 TOML
+> 插件文件描述，无需工具专属代码。
 
 ## 1. 概览
 
