@@ -1,0 +1,72 @@
+# =========================================================
+# Go 插件（go.toml）
+# 对应 Schema 版本：uvman 0.3.x，字段见 tmpl/template.toml
+# 二进制来源：Go 官方发行目录 https://go.dev/dl/
+# =========================================================
+
+# ---- 1. 工具元信息 ------------------------------------------
+[tool]
+name = "go"                                     # 工具唯一标识（安装/切换均用此名）
+description = "Go programming language (official go.dev builds)"   # 工具描述
+version = "1.0.0"                               # 插件自身版本，plugin info 展示
+author = ["yixuan"]                             # 维护者/作者
+
+# ---- 2. 下载源 ----------------------------------------------
+# 下载候选顺序：全局 [registry] 镜像 → 本插件 mirrors → 本插件 default
+# 注意：官方文件实际托管在 dl.google.com（go.dev 与 golang.google.cn 均 302 跳转过去），
+# 部分网络无法直连，因此把提供完整二进制的国内镜像放在 mirrors 里优先尝试。
+[registry]
+default = "https://go.dev/dl"
+mirrors = [
+    "https://mirrors.aliyun.com/golang",        # 直供二进制（实测 206/200，与官方文件同名同路径）
+    "https://golang.google.cn/dl",
+]
+
+# ---- 3. 版本列表获取方式 ------------------------------------
+# 官方版本 JSON 的 version 字段形如 "go1.27.1"，pattern 去掉 go 前缀。
+# 版本接口地址不含 {registry}：镜像只作用于下载，不作用于版本解析。
+# version_pattern 同时充当过滤器——只保留 x.y / x.y.z 形式的正式版本，
+# 自动丢弃 "go1.27rc3" / "go1.27beta1" 等预发布串（实测 365 条 → 280 条，无 rc/beta 残留）。
+[release]
+source = "api"
+url = "https://go.dev/dl/?mode=json&include=all"
+version_pattern = '^go(\d+\.\d+(?:\.\d+)?)$'
+# display_pattern = ''                          # 版本串已是纯净语义化版本，无需展示层清洗
+
+# ---- 4. 平台映射 --------------------------------------------
+# 系统常量 → Go 官方下载包的 OS/ARCH 标识
+[platform]
+os_map = { windows = "windows", linux = "linux", macos = "darwin" }
+arch_map = { x86_64 = "amd64", aarch64 = "arm64" }
+
+# ---- 5. 二进制安装方案 --------------------------------------
+[install.defaults]
+version = "latest"
+
+[[install.bin]]
+os = ["windows", "linux", "macos"]
+arch = ["x86_64", "aarch64"]
+
+# 5.1 下载配置：官方包命名为 go{version}.{os}-{arch}.{ext}
+# （文件名里的版本号即 pattern 产出的 {version}，无 v 前缀）
+[install.bin.download]
+path = "{registry}/go{version}.{os}-{arch}.{ext}"
+[install.bin.download.ext]
+windows = "zip"
+linux = "tar.gz"
+macos = "tar.gz"
+
+# 5.2 哈希校验：官方 sha256 内嵌在版本 JSON 的 files[].sha256 字段里，
+# 不提供独立校验和文件 → 当前 Schema 取不到，暂时关闭
+# （中期等"从 release JSON 提取 hash"能力落地后可开启强校验）
+[install.bin.download.hash]
+enabled = false
+
+# 5.3 解压配置：归档内层只有唯一的顶层目录 go/（含 bin/ pkg/ src/ 等）→ 剥掉一层
+[install.bin.extract]
+strip = 1
+
+# 5.4 部署配置：整树部署（Go 需要 bin/ pkg/ src/ lib/ 共存，不能只 flatten 出 bin/）
+# uvman 会把解压根目录及其下存在的 bin/ 一并加入 PATH
+[install.bin.deploy]
+bin_dir = ""
